@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>六年生の漢字 フラッシュカード｜特別支援教材開発研究所（TKK）</title>
+<meta name="description" content="小学6年生で習う漢字191字の読みを、タップで確かめられるフラッシュカード。送り仮名は赤で表示します。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=BIZ+UDPGothic:wght@400;700&family=Klee+One:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F7F1E3;
+    --card:#FFFDF7;
+    --ink:#4A4038;
+    --ink-soft:#8C8073;
+    --line:#E2D6C0;
+    --blue:#AFD8E8;   --blue-d:#7FAEC3;
+    --pink:#F7C9C9;   --pink-d:#D79E9E;
+    --yellow:#F8E1A0; --yellow-d:#D3B96C;
+    --green:#BFE4AF;  --green-d:#92BC7F;
+    --purple:#D8CAEE; --purple-d:#AE9CCC;
+    --okuri:#D9435A;
+    --kyokasho:"UD デジタル 教科書体 N-R","UD Digi Kyokasho N-R","UD デジタル 教科書体 NK-R","UD Digi Kyokasho NK-R",
+      "Klee One","YuKyokasho","Yu Kyokasho","Hiragino KyoKashotai W3","BIZ UDPGothic",serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--cream);color:var(--ink);
+    font-family:"BIZ UDPGothic",system-ui,-apple-system,sans-serif;
+    min-height:100vh;min-height:100dvh;overscroll-behavior:none;
+  }
+  button{touch-action:manipulation;}
+  .screen{
+    max-width:680px;margin:0 auto;min-height:100vh;min-height:100dvh;
+    display:flex;flex-direction:column;
+    padding:
+      calc(12px + env(safe-area-inset-top)) clamp(12px,4vw,20px)
+      calc(16px + env(safe-area-inset-bottom));
+    gap:clamp(8px,2vh,14px);
+  }
+  .screen[hidden]{display:none;}
+  #screenSetup{height:100vh;height:100dvh;}
+  .setup-body{min-height:0;}
+
+  h1{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+    font-size:clamp(19px,5.4vw,26px);margin:0;letter-spacing:.02em;
+  }
+
+  /* ---- ボタン ---- */
+  .btn{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;color:var(--ink);
+    border:none;border-radius:16px;
+    background:var(--yellow);box-shadow:0 5px 0 var(--yellow-d);
+    padding:clamp(12px,2.8vh,16px) 10px;font-size:clamp(15px,4.2vw,18px);
+    cursor:pointer;
+    transition:transform .06s ease, box-shadow .06s ease;
+  }
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--yellow-d);}
+  .btn:focus-visible{outline:3px solid var(--purple-d);outline-offset:2px;}
+  .btn.green{background:var(--green);box-shadow:0 5px 0 var(--green-d);}
+  .btn.green:active{box-shadow:0 1px 0 var(--green-d);}
+  .btn.pink{background:var(--pink);box-shadow:0 5px 0 var(--pink-d);}
+  .btn.pink:active{box-shadow:0 1px 0 var(--pink-d);}
+  .btn.purple{background:var(--purple);box-shadow:0 5px 0 var(--purple-d);}
+  .btn.purple:active{box-shadow:0 1px 0 var(--purple-d);}
+  .btn.big{font-size:clamp(19px,5.6vw,25px);padding:clamp(15px,3.4vh,20px) 10px;border-radius:20px;}
+  .btn:disabled{
+    opacity:.38;cursor:not-allowed;
+    background:#DCD3C2;box-shadow:0 5px 0 #C4B9A5;
+  }
+  .btn:disabled:active{transform:none;box-shadow:0 5px 0 #C4B9A5;}
+
+  /* ---- せってい ---- */
+  .setup-body{flex:1;overflow-y:auto;padding-bottom:6px;}
+  .group{margin-bottom:18px;}
+  .group h2{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+    font-size:clamp(14px,3.9vw,17px);margin:0 0 8px;
+    display:flex;align-items:center;justify-content:flex-start;gap:10px;
+  }
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+  .seg.two{grid-template-columns:repeat(2,1fr);}
+  .opt{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+    font-size:clamp(13px,3.6vw,16px);color:var(--ink);
+    background:#EFE7D6;border:3px solid #EFE7D6;border-radius:14px;
+    padding:12px 4px;min-height:48px;cursor:pointer;text-align:center;
+    transition:transform .06s ease;
+  }
+  .opt:active{transform:scale(.97);}
+  .opt[aria-pressed="true"]{background:var(--blue);border-color:var(--blue-d);}
+  .opt:focus-visible{outline:3px solid var(--purple-d);outline-offset:2px;}
+  /* もんだいの かず（スライダー） */
+  .count-num{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+    font-size:clamp(26px,7.4vw,34px);line-height:1;color:var(--ink);
+    min-width:2.2em;text-align:right;
+  }
+  .range{
+    -webkit-appearance:none;appearance:none;display:block;
+    width:100%;height:48px;margin:0;padding:0 2px;background:transparent;
+    cursor:pointer;touch-action:manipulation;--p:10%;
+  }
+  .range:focus{outline:none;}
+  .range:focus-visible{outline:3px solid var(--purple-d);outline-offset:2px;border-radius:14px;}
+  .range::-webkit-slider-runnable-track{
+    height:14px;border-radius:999px;
+    background:linear-gradient(to right,var(--blue-d) 0,var(--blue-d) var(--p),#E6DCC8 var(--p),#E6DCC8 100%);
+  }
+  .range::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:38px;height:38px;margin-top:-12px;
+    border-radius:50%;background:var(--card);border:4px solid var(--blue-d);
+    box-shadow:0 3px 0 rgba(120,100,70,.18);
+  }
+  .range::-moz-range-track{height:14px;border-radius:999px;background:#E6DCC8;}
+  .range::-moz-range-progress{height:14px;border-radius:999px;background:var(--blue-d);}
+  .range::-moz-range-thumb{
+    width:30px;height:30px;border-radius:50%;background:var(--card);border:4px solid var(--blue-d);
+    box-shadow:0 3px 0 rgba(120,100,70,.18);
+  }
+  .range-scale{
+    display:flex;justify-content:space-between;
+    font-size:clamp(11.5px,3.1vw,13px);color:var(--ink-soft);padding:0 6px;
+  }
+  .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:7px;}
+  .opt.k{
+    font-family:var(--kyokasho);font-weight:600;
+    font-size:clamp(20px,5.4vw,24px);padding:6px 0;min-height:48px;border-radius:12px;
+  }
+  .all{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+    font-size:clamp(11.5px,3.1vw,13px);color:var(--ink);
+    background:var(--yellow);border:none;border-radius:11px;
+    padding:6px 15px;cursor:pointer;flex:none;
+  }
+  .all:active{transform:translateY(2px);}
+  .all:focus-visible{outline:3px solid var(--purple-d);outline-offset:2px;}
+  .help{font-size:clamp(11.5px,3.1vw,13px);color:var(--ink-soft);line-height:1.7;margin:7px 0 0;}
+  .foot{border-top:2px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:9px;}
+  .summary{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:500;
+    font-size:clamp(12.5px,3.4vw,15px);color:var(--ink-soft);text-align:center;margin:0;
+  }
+  footer{text-align:center;font-size:11px;color:#B3A796;padding-top:8px;}
+
+  /* ---- カード ---- */
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .back-btn{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;color:var(--ink);
+    background:var(--purple);border:none;border-radius:999px;
+    padding:10px 17px;min-height:44px;font-size:clamp(13px,3.5vw,15px);cursor:pointer;
+    box-shadow:0 4px 0 var(--purple-d);
+  }
+  .back-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--purple-d);}
+  .back-btn:focus-visible{outline:3px solid var(--purple-d);outline-offset:2px;}
+  .pause-btn{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;color:var(--ink);
+    background:var(--yellow);border:none;border-radius:999px;
+    padding:10px 17px;min-height:44px;font-size:clamp(13px,3.5vw,15px);cursor:pointer;
+    box-shadow:0 4px 0 var(--yellow-d);
+  }
+  .pause-btn[hidden]{display:none;}
+  .pause-btn[aria-pressed="true"]{background:var(--green);box-shadow:0 4px 0 var(--green-d);}
+  .pause-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--yellow-d);}
+  .pause-btn:focus-visible{outline:3px solid var(--purple-d);outline-offset:2px;}
+  .counter{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:500;
+    color:var(--ink-soft);font-size:clamp(13px,3.6vw,16px);margin:0;
+  }
+  .stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;}
+  .card-wrap{width:100%;height:clamp(300px,66dvh,540px);}
+  .card{
+    position:relative;width:100%;height:100%;
+    cursor:pointer;user-select:none;-webkit-user-select:none;
+  }
+  .card:focus-visible{outline:3px solid var(--purple-d);outline-offset:6px;border-radius:28px;}
+  .face{
+    position:absolute;inset:0;
+    background:var(--card);border:3px solid var(--line);border-radius:28px;
+    box-shadow:0 7px 0 rgba(120,100,70,.13);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:clamp(8px,2vh,16px);padding:16px 16px 40px;text-align:center;
+  }
+  /* こたえ：高さは先に確保し、タップで表示だけ切り替える（漢字の位置が動かない） */
+  .answer{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    min-height:clamp(84px,14dvh,120px);max-width:100%;
+    visibility:hidden;
+  }
+  .card.flipped .answer{visibility:visible;}
+  .kanji{
+    font-family:var(--kyokasho);font-weight:600;
+    font-size:clamp(120px,40vw,240px);line-height:1;
+  }
+  .reading{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+    font-size:clamp(24px,7vw,40px);line-height:1.5;
+    max-width:100%;overflow-wrap:anywhere;
+  }
+  .reading .r{white-space:nowrap;}
+  .reading .sep{color:#C9BCA6;margin:0 .15em;}
+  .reading .okuri{color:var(--okuri);}
+  .sub{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:500;
+    font-size:clamp(14px,3.9vw,18px);color:var(--ink-soft);
+    background:#F1EADA;border-radius:11px;padding:5px 12px;
+  }
+  .sub[hidden]{display:none;}
+  .hint{position:absolute;bottom:14px;left:0;right:0;font-size:clamp(11px,3vw,13px);color:#B3A796;}
+
+  /* ---- おめでとう ---- */
+  .done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;}
+  .done svg{width:clamp(130px,42vw,210px);height:auto;}
+  .done h2{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+    font-size:clamp(30px,9vw,50px);margin:0;
+  }
+  .done p{
+    font-family:"Zen Maru Gothic",sans-serif;font-weight:500;
+    font-size:clamp(15px,4.4vw,20px);color:var(--ink-soft);margin:0;
+  }
+  .done-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+</style>
+</head>
+<body>
+
+<!-- ============ 1. せってい ============ -->
+<div class="screen" id="screenSetup">
+  <h1>六年生の漢字 フラッシュカード</h1>
+
+  <div class="setup-body">
+    <div class="group">
+      <h2>だしかた</h2>
+      <div class="seg" id="segMode">
+        <button class="opt" data-mode="all" aria-pressed="false">ぜんぶ</button>
+        <button class="opt" data-mode="pick" aria-pressed="false">えらぶ</button>
+        <button class="opt" data-mode="random" aria-pressed="false">ランダム</button>
+      </div>
+      <p class="help" id="modeHelp">だしかたを えらんで ください。</p>
+    </div>
+
+    <div class="group" id="groupRandom" hidden>
+      <h2>もんだいの かず <span class="count-num" id="countNum">20</span>もん</h2>
+      <input class="range" type="range" id="countRange" min="0" max="1000" step="1" value="0" aria-label="もんだいの かず">
+      <div class="range-scale"><span>1</span><span id="countMax">191</span></div>
+    </div>
+
+    <div class="group">
+      <h2>すすめかた</h2>
+      <div class="seg two" id="segAuto">
+        <button class="opt" data-auto="tap" aria-pressed="true">タップ</button>
+        <button class="opt" data-auto="auto" aria-pressed="false">じどう</button>
+      </div>
+      <p class="help" id="autoHelp">タップして めくります。</p>
+    </div>
+
+    <div class="group" id="groupSec" hidden>
+      <h2>びょうすう <span class="count-num" id="secNum">2</span>びょう</h2>
+      <input class="range" type="range" id="secRange" min="1" max="10" step="0.5" value="2" aria-label="びょうすう">
+      <div class="range-scale"><span>1</span><span>10</span></div>
+    </div>
+
+    <div class="group" id="groupPick" hidden>
+      <h2>漢字を えらぶ（ふくすうOK）<button class="all" id="pickAll">ぜんぶ</button></h2>
+      <div class="kgrid" id="kgrid"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <p class="summary" id="summary">だしかたを えらんで ください</p>
+    <button class="btn big green" id="btnStart" disabled>スタート</button>
+    <footer>© 特別支援教材開発研究所</footer>
+  </div>
+</div>
+
+<!-- ============ 2. カード ============ -->
+<div class="screen" id="screenCard" hidden>
+  <div class="bar">
+    <button class="back-btn" id="btnBack">← もどる</button>
+    <button class="pause-btn" id="btnPause" aria-pressed="false" hidden>とめる</button>
+    <p class="counter" id="counter">1 / 20</p>
+  </div>
+
+  <div class="stage">
+    <div class="card-wrap">
+      <div class="card" id="card" role="button" tabindex="0" aria-label="カードをめくる">
+        <div class="face">
+          <div class="kanji" id="frontKanji"></div>
+          <div class="answer" id="answer">
+            <div class="reading" id="reading"></div>
+            <div class="sub" id="note" hidden></div>
+          </div>
+          <div class="hint" id="hint">タップして よみ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 3. おめでとう ============ -->
+<div class="screen" id="screenDone" hidden>
+  <div class="done">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <path d="M70 120 L52 186 L100 158 L148 186 L130 120 Z" fill="#F7C9C9"/>
+      <circle cx="100" cy="86" r="62" fill="#F8E1A0" stroke="#D3B96C" stroke-width="6"/>
+      <circle cx="100" cy="86" r="45" fill="#FFFDF7"/>
+      <path d="M100 52 l9.5 21.5 23.5 2.4 -17.6 15.8 4.9 23.1 -20.3 -12 -20.3 12 4.9 -23.1 -17.6 -15.8 23.5 -2.4 Z" fill="#F8E1A0"/>
+    </svg>
+    <h2>おめでとう！</h2>
+    <p id="doneText">ぜんぶで 20まい れんしゅうしました</p>
+  </div>
+  <div class="done-btns">
+    <button class="btn pink" id="btnAgain">もういっかい</button>
+    <button class="btn purple" id="btnToSetup">もどる</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============ データ ============ */
+  const KANJI_LIST = [
+    "胃","異","遺","域","宇","映","延","沿","恩","我",
+    "灰","拡","革","閣","割","株","干","巻","看","簡",
+    "危","机","揮","貴","疑","吸","供","胸","郷","勤",
+    "筋","系","敬","警","劇","激","穴","券","絹","権",
+    "憲","源","厳","己","呼","誤","后","孝","皇","紅",
+    "降","鋼","刻","穀","骨","困","砂","座","済","裁",
+    "策","冊","蚕","至","私","姿","視","詞","誌","磁",
+    "射","捨","尺","若","樹","収","宗","就","衆","従",
+    "縦","縮","熟","純","処","署","諸","除","承","将",
+    "傷","障","蒸","針","仁","垂","推","寸","盛","聖",
+    "誠","舌","宣","専","泉","洗","染","銭","善","奏",
+    "窓","創","装","層","操","蔵","臓","存","尊","退",
+    "宅","担","探","誕","段","暖","値","宙","忠","著",
+    "庁","頂","腸","潮","賃","痛","敵","展","討","党",
+    "糖","届","難","乳","認","納","脳","派","拝","背",
+    "肺","俳","班","晩","否","批","秘","俵","腹","奮",
+    "並","陛","閉","片","補","暮","宝","訪","亡","忘",
+    "棒","枚","幕","密","盟","模","訳","郵","優","預",
+    "幼","欲","翌","乱","卵","覧","裏","律","臨","朗",
+    "論"
+  ];
+
+  // 読み（()内＝送り仮名を赤表示）
+  const READINGS = {
+    "胃":"い",
+    "異":"こと・い",
+    "遺":"い・ゆい",
+    "域":"いき",
+    "宇":"う",
+    "映":"うつ(る)・うつ(す)・は(える)・えい",
+    "延":"の(びる)・の(ばす)・えん",
+    "沿":"そ(う)・えん",
+    "恩":"おん",
+    "我":"われ・わ・が",
+    "灰":"はい・かい",
+    "拡":"かく",
+    "革":"かわ・かく",
+    "閣":"かく",
+    "割":"わ(る)・わり・さ(く)・かつ",
+    "株":"かぶ",
+    "干":"ほ(す)・ひ(る)・かん",
+    "巻":"ま(く)・まき・かん",
+    "看":"かん",
+    "簡":"かん",
+    "危":"あぶ(ない)・あや(うい)・き",
+    "机":"つくえ・き",
+    "揮":"き",
+    "貴":"とうと(い)・たっと(い)・き",
+    "疑":"うたが(う)・ぎ",
+    "吸":"す(う)・きゅう",
+    "供":"そな(える)・とも・きょう・く",
+    "胸":"むね・むな・きょう",
+    "郷":"きょう・ごう",
+    "勤":"つと(める)・きん・ごん",
+    "筋":"すじ・きん",
+    "系":"けい",
+    "敬":"うやま(う)・けい",
+    "警":"けい",
+    "劇":"げき",
+    "激":"はげ(しい)・げき",
+    "穴":"あな・けつ",
+    "券":"けん",
+    "絹":"きぬ・けん",
+    "権":"けん・ごん",
+    "憲":"けん",
+    "源":"みなもと・げん",
+    "厳":"きび(しい)・おごそ(か)・げん・ごん",
+    "己":"おのれ・こ・き",
+    "呼":"よ(ぶ)・こ",
+    "誤":"あやま(る)・ご",
+    "后":"こう",
+    "孝":"こう",
+    "皇":"こう・おう",
+    "紅":"べに・くれない・こう・く",
+    "降":"お(りる)・ふ(る)・こう",
+    "鋼":"はがね・こう",
+    "刻":"きざ(む)・こく",
+    "穀":"こく",
+    "骨":"ほね・こつ",
+    "困":"こま(る)・こん",
+    "砂":"すな・さ・しゃ",
+    "座":"すわ(る)・ざ",
+    "済":"す(む)・す(ます)・さい",
+    "裁":"た(つ)・さば(く)・さい",
+    "策":"さく",
+    "冊":"さつ・さく",
+    "蚕":"かいこ・さん",
+    "至":"いた(る)・し",
+    "私":"わたくし・わたし・し",
+    "姿":"すがた・し",
+    "視":"し",
+    "詞":"し",
+    "誌":"し",
+    "磁":"じ",
+    "射":"い(る)・しゃ",
+    "捨":"す(てる)・しゃ",
+    "尺":"しゃく",
+    "若":"わか(い)・も(しくは)・じゃく・にゃく",
+    "樹":"じゅ",
+    "収":"おさ(める)・しゅう",
+    "宗":"しゅう・そう",
+    "就":"つ(く)・つ(ける)・しゅう・じゅ",
+    "衆":"しゅう・しゅ",
+    "従":"したが(う)・じゅう・しょう・じゅ",
+    "縦":"たて・じゅう",
+    "縮":"ちぢ(む)・ちぢ(める)・しゅく",
+    "熟":"う(れる)・じゅく",
+    "純":"じゅん",
+    "処":"しょ",
+    "署":"しょ",
+    "諸":"しょ",
+    "除":"のぞ(く)・じょ・じ",
+    "承":"うけたまわ(る)・しょう",
+    "将":"しょう",
+    "傷":"きず・いた(む)・しょう",
+    "障":"さわ(る)・しょう",
+    "蒸":"む(す)・む(らす)・じょう",
+    "針":"はり・しん",
+    "仁":"じん・に",
+    "垂":"た(れる)・た(らす)・すい",
+    "推":"お(す)・すい",
+    "寸":"すん",
+    "盛":"も(る)・さか(ん)・せい・じょう",
+    "聖":"せい",
+    "誠":"まこと・せい",
+    "舌":"した・ぜつ",
+    "宣":"せん",
+    "専":"もっぱ(ら)・せん",
+    "泉":"いずみ・せん",
+    "洗":"あら(う)・せん",
+    "染":"そ(める)・し(みる)・せん",
+    "銭":"ぜに・せん",
+    "善":"よ(い)・ぜん",
+    "奏":"かな(でる)・そう",
+    "窓":"まど・そう",
+    "創":"つく(る)・そう",
+    "装":"よそお(う)・そう・しょう",
+    "層":"そう",
+    "操":"あやつ(る)・みさお・そう",
+    "蔵":"くら・ぞう",
+    "臓":"ぞう",
+    "存":"そん・ぞん",
+    "尊":"とうと(い)・たっと(い)・そん",
+    "退":"しりぞ(く)・たい",
+    "宅":"たく",
+    "担":"かつ(ぐ)・にな(う)・たん",
+    "探":"さぐ(る)・さが(す)・たん",
+    "誕":"たん",
+    "段":"だん",
+    "暖":"あたた(かい)・だん",
+    "値":"ね・あたい・ち",
+    "宙":"ちゅう",
+    "忠":"ちゅう",
+    "著":"あらわ(す)・いちじる(しい)・ちょ",
+    "庁":"ちょう",
+    "頂":"いただ(く)・いただき・ちょう",
+    "腸":"ちょう",
+    "潮":"しお・ちょう",
+    "賃":"ちん",
+    "痛":"いた(い)・つう",
+    "敵":"かたき・てき",
+    "展":"てん",
+    "討":"う(つ)・とう",
+    "党":"とう",
+    "糖":"とう",
+    "届":"とど(ける)・とど(く)",
+    "難":"むずか(しい)・かた(い)・なん",
+    "乳":"ちち・ち・にゅう",
+    "認":"みと(める)・にん",
+    "納":"おさ(める)・のう・なっ・とう",
+    "脳":"のう",
+    "派":"は",
+    "拝":"おが(む)・はい",
+    "背":"せ・せい・そむ(く)・はい",
+    "肺":"はい",
+    "俳":"はい",
+    "班":"はん",
+    "晩":"ばん",
+    "否":"いな・ひ",
+    "批":"ひ",
+    "秘":"ひ(める)・ひ",
+    "俵":"たわら・ひょう",
+    "腹":"はら・ふく",
+    "奮":"ふる(う)・ふん",
+    "並":"なら(ぶ)・なみ・へい",
+    "陛":"へい",
+    "閉":"と(じる)・し(める)・へい",
+    "片":"かた・へん",
+    "補":"おぎな(う)・ほ",
+    "暮":"く(れる)・く(らす)・ぼ",
+    "宝":"たから・ほう",
+    "訪":"おとず(れる)・たず(ねる)・ほう",
+    "亡":"な(い)・ぼう・もう",
+    "忘":"わす(れる)・ぼう",
+    "棒":"ぼう",
+    "枚":"まい",
+    "幕":"まく・ばく",
+    "密":"みつ",
+    "盟":"めい",
+    "模":"も・ぼ",
+    "訳":"わけ・やく",
+    "郵":"ゆう",
+    "優":"やさ(しい)・すぐ(れる)・ゆう",
+    "預":"あず(ける)・よ",
+    "幼":"おさな(い)・よう",
+    "欲":"ほ(しい)・ほっ(する)・よく",
+    "翌":"よく",
+    "乱":"みだ(れる)・らん",
+    "卵":"たまご・らん",
+    "覧":"らん",
+    "裏":"うら・り",
+    "律":"りつ・りち",
+    "臨":"のぞ(む)・りん",
+    "朗":"ほが(らか)・ろう",
+    "論":"ろん"
+  };
+
+  /* ============ 状態 ============ */
+  var state = {
+    mode: null,      /* all | pick | random */
+    count: 20,       /* ランダムの もんだいの かず（1〜ぜんぶ） */
+    picked: [],      /* えらぶ で選んだ漢字 */
+    deck: [],
+    pos: 0,
+    flipped: false,
+    auto: 0,         /* いまの びょうすう（0＝タップ） */
+    sec: 2,          /* じどうの びょうすう（1〜10、0.5きざみ） */
+    paused: false
+  };
+  var timer = null;  /* じどうの タイマー（setTimeout を1つだけ） */
+
+  /* ============ 純粋ロジック ============ */
+  function shuffleArr(arr, rnd) {
+    var a = arr.slice(), i, j, t, r = rnd || Math.random;
+    for (i = a.length - 1; i > 0; i--) {
+      j = Math.floor(r() * (i + 1));
+      if (j > i) j = i;
+      if (j < 0) j = 0;
+      t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* 配当表の順に並べ直す */
+  function inListOrder(chars) {
+    return KANJI_LIST.filter(function (k) { return chars.indexOf(k) !== -1; });
+  }
+
+  var SEC_MIN = 1, SEC_MAX = 10;
+  /* 0.5びょう きざみに そろえる */
+  function clampSec(n) {
+    n = Math.round(Number(n) * 2) / 2;
+    if (!isFinite(n)) n = 2;
+    return Math.max(SEC_MIN, Math.min(SEC_MAX, n));
+  }
+
+  /* ランダムの かず：1〜ぜんぶ の整数にそろえる */
+  function clampCount(n) {
+    n = Math.round(Number(n));
+    if (!isFinite(n)) n = 20;
+    return Math.max(1, Math.min(KANJI_LIST.length, n));
+  }
+
+  /* スライダーの位置(0〜1000) ⇔ かず。すくない かずほど 目もりを ひろくして 合わせやすくする */
+  var POS_MAX = 1000;
+  function countFromPos(pos) {
+    var t = Math.max(0, Math.min(POS_MAX, Number(pos) || 0)) / POS_MAX;
+    return clampCount(1 + (KANJI_LIST.length - 1) * t * t);
+  }
+  function posFromCount(n) {
+    var t = Math.sqrt((clampCount(n) - 1) / Math.max(1, KANJI_LIST.length - 1));
+    return Math.round(t * POS_MAX);
+  }
+
+  function buildDeck(mode, picked, rnd, count) {
+    if (mode === "all") return KANJI_LIST.slice();
+    if (mode === "pick") return inListOrder(picked);
+    if (mode === "random") return shuffleArr(KANJI_LIST, rnd).slice(0, clampCount(count));
+    return [];
+  }
+
+  function deckSize(mode, picked, count) {
+    if (mode === "all") return KANJI_LIST.length;
+    if (mode === "pick") return inListOrder(picked).length;
+    if (mode === "random") return clampCount(count);
+    return 0;
+  }
+
+  /* 読みを「ふつうの読み」と「補足」に分ける */
+  function splitReading(text) {
+    var parts = String(text || "").split("・").filter(function (s) { return s !== ""; });
+    var main = [], notes = [];
+    parts.forEach(function (p) {
+      if (p.indexOf("（") !== -1) notes.push(p); else main.push(p);
+    });
+    return { main: main, notes: notes };
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* ( ) の中＝送り仮名を赤に。読みの途中では改行せず、「・」の後で折り返す */
+  function readingHtml(list) {
+    return list.map(function (p) {
+      return '<span class="r">' +
+        escapeHtml(p).replace(/\(([^)]+)\)/g, '<span class="okuri">$1</span>') + '</span>';
+    }).join('<span class="sep">・</span><wbr>');
+  }
+
+  /* ============ DOM ============ */
+  var $ = function (id) { return document.getElementById(id); };
+  var elCard = $("card");
+
+  function show(name) {
+    if (name !== "card") clearTimer();
+    $("screenSetup").hidden = (name !== "setup");
+    $("screenCard").hidden  = (name !== "card");
+    $("screenDone").hidden  = (name !== "done");
+    if (name === "card") elCard.focus();
+    else if (name === "done") $("btnAgain").focus();
+    else if (window.scrollTo) { try { window.scrollTo(0, 0); } catch (e) {} }
+  }
+
+  function render() {
+    if (!state.deck.length) return;
+    var k = state.deck[state.pos];
+    var r = splitReading(READINGS[k] || "");
+    $("frontKanji").textContent = k;
+    $("reading").innerHTML = readingHtml(r.main);
+    if (r.notes.length) {
+      $("note").textContent = r.notes.join("・");
+      $("note").hidden = false;
+    } else {
+      $("note").hidden = true;
+    }
+    $("counter").textContent = (state.pos + 1) + " / " + state.deck.length;
+    elCard.classList.toggle("flipped", state.flipped);
+    if (state.auto) {
+      $("hint").textContent = state.paused ? "とまっています（タップで すすみます）" : "じどうで すすみます";
+    } else {
+      $("hint").textContent = state.flipped ? "タップで つぎへ" : "タップして よみ";
+    }
+    $("btnPause").hidden = !state.auto;
+    $("btnPause").textContent = state.paused ? "うごかす" : "とめる";
+    $("btnPause").setAttribute("aria-pressed", state.paused ? "true" : "false");
+    elCard.setAttribute("aria-label", state.flipped ? "よみ" : "もんだい");
+  }
+
+  function updateSetup() {
+    var modes = document.querySelectorAll("[data-mode]");
+    for (var i = 0; i < modes.length; i++) {
+      modes[i].setAttribute("aria-pressed", modes[i].getAttribute("data-mode") === state.mode ? "true" : "false");
+    }
+    $("groupPick").hidden = (state.mode !== "pick");
+    $("groupRandom").hidden = (state.mode !== "random");
+    var range = $("countRange");
+    if (countFromPos(range.value) !== state.count) range.value = String(posFromCount(state.count));
+    range.style.setProperty("--p", (Number(range.value) / POS_MAX * 100) + "%");
+    range.setAttribute("aria-valuetext", state.count + "もん");
+    $("countNum").textContent = state.count;
+
+    var autos = document.querySelectorAll("[data-auto]");
+    for (var a = 0; a < autos.length; a++) {
+      var isAuto = autos[a].getAttribute("data-auto") === "auto";
+      autos[a].setAttribute("aria-pressed", (isAuto === !!state.auto) ? "true" : "false");
+    }
+    $("groupSec").hidden = !state.auto;
+    var sr = $("secRange");
+    if (Number(sr.value) !== state.sec) sr.value = String(state.sec);
+    sr.style.setProperty("--p", ((state.sec - SEC_MIN) / (SEC_MAX - SEC_MIN) * 100) + "%");
+    sr.setAttribute("aria-valuetext", state.sec + "びょう");
+    $("secNum").textContent = state.sec;
+    $("autoHelp").textContent = state.auto
+      ? "もんだい → " + state.auto + "びょう → こたえ → " + state.auto + "びょう → つぎの もんだい"
+      : "タップして めくります。";
+
+    var chips = $("kgrid").children;
+    for (var j = 0; j < chips.length; j++) {
+      var on = state.picked.indexOf(chips[j].textContent) !== -1;
+      chips[j].setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    var total = KANJI_LIST.length;
+    var help = {
+      all: total + "字を じゅんばんに だします。",
+      pick: "れんしゅうしたい 漢字を タップして えらびます。",
+      random: total + "字の中から " + state.count + "字を ランダムに だします。"
+    };
+    $("modeHelp").textContent = state.mode ? help[state.mode] : "だしかたを えらんで ください。";
+
+    var n = deckSize(state.mode, state.picked, state.count);
+    $("btnStart").disabled = (n === 0);
+    if (!state.mode) $("summary").textContent = "だしかたを えらんで ください";
+    else if (n === 0) $("summary").textContent = "漢字を えらんで ください";
+    else $("summary").textContent = "ぜんぶで " + n + "まい" + (state.auto ? "（" + state.auto + "びょうで じどう）" : "");
+  }
+
+  function start() {
+    var deck = buildDeck(state.mode, state.picked, null, state.count);
+    if (!deck.length) return;
+    state.deck = deck;
+    state.pos = 0;
+    state.flipped = false;
+    state.paused = false;
+    render();
+    show("card");
+    schedule();
+  }
+
+  /* ============ じどう ============ */
+  function clearTimer() {
+    if (timer !== null) { clearTimeout(timer); timer = null; }
+  }
+
+  /* いまのカードから かぞえなおす（タップや もどる のあとも同じ間かく） */
+  function schedule() {
+    clearTimer();
+    if (!state.auto || state.paused || !state.deck.length || $("screenCard").hidden) return;
+    timer = setTimeout(function () { timer = null; advance(); }, state.auto * 1000);
+  }
+
+  function togglePause() {
+    if (!state.auto || $("screenCard").hidden) return;
+    state.paused = !state.paused;
+    render();
+    schedule();
+  }
+
+  function finish() {
+    $("doneText").textContent = "ぜんぶで " + state.deck.length + "まい れんしゅうしました";
+    show("done");
+  }
+
+  /* おもて→よみ／よみ→つぎへ（さいごなら おめでとう） */
+  function advance() {
+    if (!state.deck.length || $("screenCard").hidden) return;
+    if (state.flipped) {
+      if (state.pos >= state.deck.length - 1) { finish(); return; }
+      state.pos += 1;
+      state.flipped = false;
+    } else {
+      state.flipped = true;
+    }
+    render();
+    schedule();
+  }
+
+  function goBack() {
+    if (!state.deck.length || $("screenCard").hidden) return;
+    if (state.flipped) { state.flipped = false; }
+    else if (state.pos > 0) { state.pos -= 1; state.flipped = false; }
+    render();
+    schedule();
+  }
+
+  /* ============ 漢字の一覧 ============ */
+  $("countRange").value = String(posFromCount(state.count));
+  $("countMax").textContent = KANJI_LIST.length;
+
+  (function buildGrid() {
+    var frag = document.createDocumentFragment();
+    KANJI_LIST.forEach(function (k) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt k";
+      b.textContent = k;
+      b.setAttribute("aria-pressed", "false");
+      frag.appendChild(b);
+    });
+    $("kgrid").appendChild(frag);
+  })();
+
+  /* ============ イベント ============ */
+  $("segMode").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-mode]");
+    if (!b) return;
+    var m = b.getAttribute("data-mode");
+    /* ほかのだしかたから えらぶ に切り替えたときは、未選択から始める */
+    if (m === "pick" && state.mode !== "pick") state.picked = [];
+    state.mode = m;
+    updateSetup();
+    if (m === "random") reveal($("groupRandom"));
+  });
+
+  /* 小さい画面で、あらわれた スライダーが かくれないように */
+  function reveal(el) {
+    if (!el || el.hidden || !el.scrollIntoView) return;
+    try { el.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {}
+  }
+
+  $("segAuto").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-auto]");
+    if (!b) return;
+    state.auto = (b.getAttribute("data-auto") === "auto") ? state.sec : 0;
+    updateSetup();
+    if (state.auto) reveal($("groupSec"));
+  });
+
+  $("secRange").addEventListener("input", function () {
+    state.sec = clampSec(this.value);
+    if (state.auto) state.auto = state.sec;
+    updateSetup();
+  });
+
+  $("btnPause").addEventListener("click", togglePause);
+
+  $("countRange").addEventListener("input", function () {
+    state.count = countFromPos(this.value);
+    updateSetup();
+  });
+  /* やじるしキーは 1もんずつ */
+  $("countRange").addEventListener("keydown", function (e) {
+    var d = (e.key === "ArrowRight" || e.key === "ArrowUp") ? 1 :
+            (e.key === "ArrowLeft" || e.key === "ArrowDown") ? -1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    state.count = clampCount(state.count + d);
+    this.value = String(posFromCount(state.count));
+    updateSetup();
+  });
+
+  /* ほかのアプリに切り替えたら じどうを とめる */
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden && state.auto && !state.paused && !$("screenCard").hidden) {
+      state.paused = true;
+      render();
+      clearTimer();
+    }
+  });
+
+  $("kgrid").addEventListener("click", function (e) {
+    var b = e.target.closest(".opt.k");
+    if (!b) return;
+    var k = b.textContent, i = state.picked.indexOf(k);
+    if (i === -1) state.picked.push(k); else state.picked.splice(i, 1);
+    updateSetup();
+  });
+
+  $("pickAll").addEventListener("click", function () {
+    state.picked = (state.picked.length === KANJI_LIST.length) ? [] : KANJI_LIST.slice();
+    updateSetup();
+  });
+
+  $("btnStart").addEventListener("click", start);
+  $("btnAgain").addEventListener("click", start);
+  $("btnToSetup").addEventListener("click", function () { show("setup"); });
+  $("btnBack").addEventListener("click", function () { show("setup"); });
+
+  elCard.addEventListener("click", advance);
+  elCard.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); advance(); }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if ($("screenCard").hidden) {
+      if (e.key === "Escape" && !$("screenDone").hidden) show("setup");
+      return;
+    }
+    if (e.key === "ArrowRight") { e.preventDefault(); advance(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); goBack(); }
+    else if (e.key === "Escape") { show("setup"); }
+  });
+
+  updateSetup();
+  show("setup");
+
+  /* テスト用（UIには影響しません） */
+  window.__tkk = {
+    KANJI_LIST: KANJI_LIST, READINGS: READINGS, state: state,
+    getTimer: function () { return timer; },
+    buildDeck: buildDeck, deckSize: deckSize, clampCount: clampCount, clampSec: clampSec, countFromPos: countFromPos, posFromCount: posFromCount, shuffleArr: shuffleArr,
+    splitReading: splitReading, readingHtml: readingHtml
+  };
+})();
+</script>
+</body>
+</html>
